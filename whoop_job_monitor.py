@@ -8,8 +8,9 @@ Simplified approach: Extract all jobs, then filter by department.
 import json
 import time
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -29,6 +30,24 @@ except ImportError:
 CAREERS_URL = "https://www.whoop.com/us/en/careers/"
 CHECK_INTERVAL = 3600  # Check every hour (in seconds)
 DATA_FILE = Path("whoop_jobs_data.json")
+
+# Schedule: run at 5:00 PM Pacific (PST/PDT) on these weekdays (0=Mon, 4=Fri)
+SCHEDULE_HOUR = 17
+SCHEDULE_MINUTE = 0
+SCHEDULE_DAYS = (0, 4)  # Monday, Friday
+PACIFIC = ZoneInfo("America/Los_Angeles")
+
+
+def get_next_run_time():
+    """Return the next datetime (Pacific) when the script should run (Mon or Fri at 5pm)."""
+    now = datetime.now(PACIFIC)
+    # Check today and the next 7 days for Mon or Fri 5pm
+    for days_ahead in range(8):
+        candidate = now + timedelta(days=days_ahead)
+        run_time = candidate.replace(hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0)
+        if candidate.weekday() in SCHEDULE_DAYS and run_time > now:
+            return run_time
+    return None
 
 # DEPARTMENTS TO MONITOR - Only track jobs in these departments
 DEPARTMENTS_TO_MONITOR = [
@@ -270,7 +289,22 @@ class WhoopJobMonitor:
         finally:
             driver.quit()
     
-    def format_current_jobs_report(self, jobs):
+    def compare_with_previous(self, current_jobs):
+        """
+        Compare current jobs to the saved JSON (previous run).
+        Returns dict with 'new' and 'removed' lists of job dicts.
+        """
+        prev_listings = self.previous_jobs.get('listings') or []
+        curr_listings = current_jobs.get('listings') or []
+        prev_titles = {j['title'] for j in prev_listings}
+        curr_titles = {j['title'] for j in curr_listings}
+        new_titles = curr_titles - prev_titles
+        removed_titles = prev_titles - curr_titles
+        new_jobs = [j for j in curr_listings if j['title'] in new_titles]
+        removed_jobs = [j for j in prev_listings if j['title'] in removed_titles]
+        return {'new': new_jobs, 'removed': removed_jobs}
+    
+    def format_current_jobs_report(self, jobs, changes_since_last=None):
         """Build the same report text used for console and email."""
         lines = []
         lines.append(f"\n{'='*70}")
@@ -278,6 +312,26 @@ class WhoopJobMonitor:
         lines.append(f"🎯 Monitoring: {', '.join(DEPARTMENTS_TO_MONITOR)}")
         lines.append(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"{'='*70}")
+        
+        # Changes since last run (JSON comparison)
+        if changes_since_last and (changes_since_last['new'] or changes_since_last['removed']):
+            lines.append(f"\n📌 CHANGES SINCE LAST RUN (vs saved JSON):\n")
+            if changes_since_last['new']:
+                lines.append(f"   ✨ NEW OPENINGS ({len(changes_since_last['new'])}):")
+                for j in changes_since_last['new']:
+                    dept = j.get('department') or '?'
+                    lines.append(f"      • {j['title']} [{dept}]")
+                    if j.get('url') and j['url'] != CAREERS_URL:
+                        lines.append(f"        🔗 {j['url']}")
+                lines.append("")
+            if changes_since_last['removed']:
+                lines.append(f"   ❌ REMOVED / FILLED ({len(changes_since_last['removed'])}):")
+                for j in changes_since_last['removed']:
+                    dept = j.get('department') or '?'
+                    lines.append(f"      • {j['title']} [{dept}]")
+                lines.append("")
+        elif changes_since_last and not changes_since_last['new'] and not changes_since_last['removed']:
+            lines.append(f"\n📌 No changes since last run (same listings as saved JSON).\n")
         
         if 'departments' in jobs and jobs['departments']:
             lines.append(f"\n📂 MONITORED DEPARTMENTS ({len(jobs['departments'])} total):\n")
@@ -306,15 +360,15 @@ class WhoopJobMonitor:
         """Display the current job listings (console)."""
         print(self.format_current_jobs_report(jobs))
     
-    def send_notification(self, report_message):
+    def send_notification(self, report_message, has_new_jobs=False):
         """Send the same report to console and/or email."""
         if self.notification_method in ['console', 'both']:
             print(report_message)
         
         if self.notification_method in ['email', 'both']:
-            self.send_email_notification(report_message)
+            self.send_email_notification(report_message, has_new_jobs=has_new_jobs)
     
-    def send_email_notification(self, message):
+    def send_email_notification(self, message, has_new_jobs=False):
         """Send email notification (same content as console report)."""
         # Email configuration - UPDATE THESE VALUES
         smtp_server = "smtp.gmail.com"
@@ -323,11 +377,13 @@ class WhoopJobMonitor:
         sender_password = "qnqkowjouucedivr"  # Your app password
         receiver_email = "sgmoore209@gmail.com"  # Notification recipient
         
+        subject = "📋 WHOOP Careers - NEW Job Listings" if has_new_jobs else "📋 WHOOP Careers - Current Job Listings"
+        
         try:
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = receiver_email
-            msg['Subject'] = "📋 WHOOP Careers - Current Job Listings"
+            msg['Subject'] = subject
             
             msg.attach(MIMEText(message, 'plain'))
             
@@ -348,11 +404,14 @@ class WhoopJobMonitor:
         current_jobs = self.fetch_jobs()
         
         if current_jobs:
-            # Build the same report for console and email (all current positions)
-            report = self.format_current_jobs_report(current_jobs)
-            self.send_notification(report)
+            # Compare with saved JSON (previous run) for new/removed jobs
+            changes = self.compare_with_previous(current_jobs) if self.previous_jobs.get('listings') else None
+            has_new_jobs = changes and len(changes.get('new', [])) > 0
+            # Build report including changes since last run (omit on first run)
+            report = self.format_current_jobs_report(current_jobs, changes_since_last=changes)
+            self.send_notification(report, has_new_jobs=has_new_jobs)
             
-            # Save current state
+            # Save current state to JSON for next comparison
             self.previous_jobs = current_jobs
             self.save_jobs(current_jobs)
         else:
@@ -371,6 +430,28 @@ class WhoopJobMonitor:
                 time.sleep(CHECK_INTERVAL)
         except KeyboardInterrupt:
             print("\n\n✋ Monitoring stopped by user.")
+    
+    def run_scheduled(self):
+        """Run at 5pm Pacific every Monday and Friday. Sleeps until the next scheduled time."""
+        day_names = {0: "Monday", 4: "Friday"}
+        print(f"Starting WHOOP job monitor (scheduled: {day_names[0]} & {day_names[4]} at 5:00 PM Pacific)")
+        print(f"Press Ctrl+C to stop\n")
+        try:
+            while True:
+                next_run = get_next_run_time()
+                if not next_run:
+                    print("❌ Could not determine next run time.")
+                    break
+                now = datetime.now(PACIFIC)
+                wait_seconds = (next_run - now).total_seconds()
+                if wait_seconds <= 0:
+                    self.run_once()
+                    continue
+                print(f"⏰ Next run: {next_run.strftime('%A %Y-%m-%d at %I:%M %p')} Pacific (in {wait_seconds/3600:.1f} hours)")
+                time.sleep(wait_seconds)
+                self.run_once()
+        except KeyboardInterrupt:
+            print("\n\n✋ Scheduled monitoring stopped by user.")
 
 
 def main():
@@ -379,10 +460,13 @@ def main():
     monitor = WhoopJobMonitor(notification_method='both')
     
     # For one-time check:
-    monitor.run_once()
+    # monitor.run_once()
     
-    # For continuous monitoring (uncomment below and comment out run_once):
+    # For continuous monitoring (every CHECK_INTERVAL seconds):
     # monitor.run_continuous()
+    
+    # Scheduled: every Monday and Friday at 5pm Pacific
+    monitor.run_scheduled()
 
 
 if __name__ == "__main__":
