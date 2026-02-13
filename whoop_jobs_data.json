@@ -1,0 +1,115 @@
+{
+  "listings": [
+    {
+      "title": "Associate Director of Research, Doha",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Associate Director, Lab Operations",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Data Engineer II",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Distributed & Quantitative Research Specialist (Temporary)",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Lab Operations Coordinator, Front of House (Temporary)",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Program Manager, Core Algorithms",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Research Manager, WHOOP Labs Doha",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Research Operations Manager",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Researcher I (Temporary)",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Senior Lab Manager, WHOOP Doha",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Senior Machine Learning Engineer (Health)",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Senior ML Platform Engineer",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Staff DevOps Engineer (Data Platform)",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Data Science & Research"
+    },
+    {
+      "title": "Scientific Communications Associate",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Performance Science"
+    },
+    {
+      "title": "Senior Scientist",
+      "url": "https://www.whoop.com/us/en/careers/",
+      "department": "Performance Science"
+    }
+  ],
+  "departments": {
+    "Data Science & Research": "13 positions",
+    "Performance Science": "2 positions"
+  },
+  "all_departments": {
+    "Software": "30 positions",
+    "Legal": "2 positions",
+    "Creative": "2 positions",
+    "Data Science & Research": "13 positions",
+    "Business Intelligence & Analytics": "5 positions",
+    "Marketing": "9 positions",
+    "Hardware": "9 positions",
+    "Information Security": "2 positions",
+    "Information Technology": "3 positions",
+    "Growth": "2 positions",
+    "Health & Medical": "3 positions",
+    "Sensor Intelligence": "4 positions",
+    "Industrial Design": "3 positions",
+    "Membership Services": "4 positions",
+    "Talent": "4 positions",
+    "Supply Chain": "4 positions",
+    "Product Design": "2 positions",
+    "Product": "4 positions",
+    "Performance Science": "2 positions",
+    "Finance": "2 positions",
+    "Operations": "4 positions",
+    "Accessories & Apparel": "3 positions",
+    "Collaborations & Design": "1 positions",
+    "Hardware Quality": "2 positions",
+    "Foundation AI": "3 positions",
+    "Office of the CEO": "1 positions"
+  },
+  "page_hash": "12c17da96796ff187e89d42a0e17065d",
+  "count": 15,
+  "department_count": 2,
+  "last_checked": "2026-02-12T16:15:11.276722"
+}

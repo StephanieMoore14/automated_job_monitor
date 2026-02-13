@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Optional: uncomment to avoid committing job data (use if you prefer not to track state in git)
+# whoop_jobs_data.json
+
+# Local / secrets (if you ever move credentials to a file)
+.env
+.env.local
+*.local
