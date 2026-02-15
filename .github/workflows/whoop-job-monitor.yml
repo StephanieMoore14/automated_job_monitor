@@ -1,0 +1,46 @@
+# WHOOP Job Monitor: Saturday 8am, Sunday 8am, Monday 5pm Pacific
+# 16:00 UTC = 8am PST/PDT. 01:00 UTC Tuesday = 5pm Monday PST.
+name: WHOOP Job Monitor
+
+on:
+  schedule:
+    - cron: "0 16 * * 6"   # Saturday 8am Pacific
+    - cron: "0 16 * * 0"   # Sunday 8am Pacific
+    - cron: "0 1 * * 2"    # Tuesday 01:00 UTC = Monday 5pm Pacific
+  workflow_dispatch: # Allow manual run from Actions tab
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Restore job data (for "changes since last run" comparison)
+        uses: actions/cache@v4
+        with:
+          path: whoop_jobs_data.json
+          key: whoop-jobs-data
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run job monitor (once)
+        env:
+          RUN_ONCE: "1"
+          WHOOP_SMTP_PASSWORD: ${{ secrets.WHOOP_SMTP_PASSWORD }}
+          WHOOP_SENDER_EMAIL: ${{ secrets.WHOOP_SENDER_EMAIL }}
+          WHOOP_RECEIVER_EMAIL: ${{ secrets.WHOOP_RECEIVER_EMAIL }}
+        run: python whoop_job_monitor.py

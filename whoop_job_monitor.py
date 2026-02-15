@@ -6,6 +6,7 @@ Simplified approach: Extract all jobs, then filter by department.
 """
 
 import json
+import os
 import time
 import hashlib
 from datetime import datetime, timedelta
@@ -31,23 +32,28 @@ CAREERS_URL = "https://www.whoop.com/us/en/careers/"
 CHECK_INTERVAL = 3600  # Check every hour (in seconds)
 DATA_FILE = Path("whoop_jobs_data.json")
 
-# Schedule: run at 5:00 PM Pacific (PST/PDT) on these weekdays (0=Mon, 4=Fri)
-SCHEDULE_HOUR = 17
-SCHEDULE_MINUTE = 0
-SCHEDULE_DAYS = (0, 4)  # Monday, Friday
+# Schedule: (weekday, hour, minute) in Pacific. 0=Mon, 5=Sat, 6=Sun.
+# Saturday 8am, Sunday 8am, Monday 5pm
+SCHEDULE_SLOTS = [
+    (5, 8, 0),   # Saturday 8:00 AM
+    (6, 8, 0),   # Sunday 8:00 AM
+    (0, 17, 0),  # Monday 5:00 PM
+]
 PACIFIC = ZoneInfo("America/Los_Angeles")
 
 
 def get_next_run_time():
-    """Return the next datetime (Pacific) when the script should run (Mon or Fri at 5pm)."""
+    """Return the next datetime (Pacific) when the script should run."""
     now = datetime.now(PACIFIC)
-    # Check today and the next 7 days for Mon or Fri 5pm
+    next_runs = []
     for days_ahead in range(8):
-        candidate = now + timedelta(days=days_ahead)
-        run_time = candidate.replace(hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0)
-        if candidate.weekday() in SCHEDULE_DAYS and run_time > now:
-            return run_time
-    return None
+        day = now + timedelta(days=days_ahead)
+        for weekday, hour, minute in SCHEDULE_SLOTS:
+            if day.weekday() == weekday:
+                run_time = day.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                if run_time > now:
+                    next_runs.append(run_time)
+    return min(next_runs) if next_runs else None
 
 # DEPARTMENTS TO MONITOR - Only track jobs in these departments
 DEPARTMENTS_TO_MONITOR = [
@@ -370,12 +376,12 @@ class WhoopJobMonitor:
     
     def send_email_notification(self, message, has_new_jobs=False):
         """Send email notification (same content as console report)."""
-        # Email configuration - UPDATE THESE VALUES
-        smtp_server = "smtp.gmail.com"
-        smtp_port = 587
-        sender_email = "sgmoore209@gmail.com"  # Your sending email
-        sender_password = "qnqkowjouucedivr"  # Your app password
-        receiver_email = "sgmoore209@gmail.com"  # Notification recipient
+        # Email config: use env vars in CI (GitHub Actions secrets), else fallback to defaults
+        smtp_server = os.environ.get("WHOOP_SMTP_SERVER") or "smtp.gmail.com"
+        smtp_port = int(os.environ.get("WHOOP_SMTP_PORT") or "587")
+        sender_email = os.environ.get("WHOOP_SENDER_EMAIL") or "sgmoore209@gmail.com"
+        sender_password = os.environ.get("WHOOP_SMTP_PASSWORD") or "qnqkowjouucedivr"
+        receiver_email = os.environ.get("WHOOP_RECEIVER_EMAIL") or "sgmoore209@gmail.com"
         
         subject = "📋 WHOOP Careers - NEW Job Listings" if has_new_jobs else "📋 WHOOP Careers - Current Job Listings"
         
@@ -432,9 +438,8 @@ class WhoopJobMonitor:
             print("\n\n✋ Monitoring stopped by user.")
     
     def run_scheduled(self):
-        """Run at 5pm Pacific every Monday and Friday. Sleeps until the next scheduled time."""
-        day_names = {0: "Monday", 4: "Friday"}
-        print(f"Starting WHOOP job monitor (scheduled: {day_names[0]} & {day_names[4]} at 5:00 PM Pacific)")
+        """Run Saturday 8am, Sunday 8am, and Monday 5pm Pacific. Sleeps until the next scheduled time."""
+        print("Starting WHOOP job monitor (scheduled: Saturday 8am, Sunday 8am, Monday 5pm Pacific)")
         print(f"Press Ctrl+C to stop\n")
         try:
             while True:
@@ -459,13 +464,18 @@ def main():
     # Choose notification method: 'console', 'email', or 'both'
     monitor = WhoopJobMonitor(notification_method='both')
     
-    # For one-time check:
+    # In CI (e.g. GitHub Actions): run once and exit. Locally: use scheduled or one-off.
+    if os.environ.get("RUN_ONCE"):
+        monitor.run_once()
+        return
+    
+    # For one-time check (when not using RUN_ONCE):
     # monitor.run_once()
     
     # For continuous monitoring (every CHECK_INTERVAL seconds):
     # monitor.run_continuous()
     
-    # Scheduled: every Monday and Friday at 5pm Pacific
+    # Scheduled: Saturday 8am, Sunday 8am, Monday 5pm Pacific
     monitor.run_scheduled()
 
 
