@@ -1,11 +1,11 @@
 # WHOOP Job Monitor
 
-Monitors WHOOP careers for Data Science & Performance Science roles and emails you the current listings (and “new since last run”) on Saturday 8am, Sunday 8am, and Monday 5pm Pacific.
+Monitors WHOOP careers for Data Science & Performance Science roles and emails you the current listings (and “new since last run”) every day at 8am Eastern.
 
 ## Running locally
 
 - **One-time:** `python whoop_job_monitor.py` (set `monitor.run_once()` in `main()`).
-- **Scheduled (Sat 8am, Sun 8am, Mon 5pm Pacific):** `python whoop_job_monitor.py` with `monitor.run_scheduled()` in `main()`.
+- **Scheduled (every day 8am Eastern):** `python whoop_job_monitor.py` with `monitor.run_scheduled()` in `main()`.
 
 ## GitHub Actions (free)
 
@@ -27,8 +27,8 @@ Push `.github/workflows/whoop-job-monitor.yml` (and the script changes). The wor
 
 ### 3. Schedule
 
-- **Cron:** Saturday 16:00 UTC (8am Pacific), Sunday 16:00 UTC (8am Pacific), Monday 01:00 UTC (5pm Pacific).
-- To change times, edit the `cron` expressions in the workflow and `SCHEDULE_SLOTS` in the script.
+- **Cron:** Every day at 13:00 UTC (= 8am Eastern in winter / 9am Eastern in summer).
+- To change time, edit the `cron` in the workflow and `SCHEDULE_SLOTS` in the script.
 
 ### 4. Cost
 

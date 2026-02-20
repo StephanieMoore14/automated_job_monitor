@@ -1,12 +1,10 @@
-# WHOOP Job Monitor: Saturday 8am, Sunday 8am, Monday 5pm Pacific
-# 16:00 UTC = 8am PST/PDT. 01:00 UTC Tuesday = 5pm Monday PST.
+# WHOOP Job Monitor: every day at 8am Eastern (EST/EDT)
+# 13:00 UTC = 8am EST (winter) / 9am EDT (summer). Single daily run.
 name: WHOOP Job Monitor
 
 on:
   schedule:
-    - cron: "0 16 * * 6"   # Saturday 8am Pacific
-    - cron: "0 16 * * 0"   # Sunday 8am Pacific
-    - cron: "0 1 * * 2"    # Tuesday 01:00 UTC = Monday 5pm Pacific
+    - cron: "0 13 * * *"   # 13:00 UTC = 8am Eastern (EST)
   workflow_dispatch: # Allow manual run from Actions tab
 
 jobs:

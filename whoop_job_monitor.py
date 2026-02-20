@@ -32,19 +32,14 @@ CAREERS_URL = "https://www.whoop.com/us/en/careers/"
 CHECK_INTERVAL = 3600  # Check every hour (in seconds)
 DATA_FILE = Path("whoop_jobs_data.json")
 
-# Schedule: (weekday, hour, minute) in Pacific. 0=Mon, 5=Sat, 6=Sun.
-# Saturday 8am, Sunday 8am, Monday 5pm
-SCHEDULE_SLOTS = [
-    (5, 8, 0),   # Saturday 8:00 AM
-    (6, 8, 0),   # Sunday 8:00 AM
-    (0, 17, 0),  # Monday 5:00 PM
-]
-PACIFIC = ZoneInfo("America/Los_Angeles")
+# Schedule: every day at 8:00 AM Eastern (EST/EDT)
+SCHEDULE_SLOTS = [(d, 8, 0) for d in range(7)]  # All weekdays, 8am
+EASTERN = ZoneInfo("America/New_York")
 
 
 def get_next_run_time():
-    """Return the next datetime (Pacific) when the script should run."""
-    now = datetime.now(PACIFIC)
+    """Return the next datetime (Eastern) when the script should run."""
+    now = datetime.now(EASTERN)
     next_runs = []
     for days_ahead in range(8):
         day = now + timedelta(days=days_ahead)
@@ -438,8 +433,8 @@ class WhoopJobMonitor:
             print("\n\n✋ Monitoring stopped by user.")
     
     def run_scheduled(self):
-        """Run Saturday 8am, Sunday 8am, and Monday 5pm Pacific. Sleeps until the next scheduled time."""
-        print("Starting WHOOP job monitor (scheduled: Saturday 8am, Sunday 8am, Monday 5pm Pacific)")
+        """Run every day at 8am Eastern. Sleeps until the next scheduled time."""
+        print("Starting WHOOP job monitor (scheduled: every day at 8:00 AM Eastern)")
         print(f"Press Ctrl+C to stop\n")
         try:
             while True:
@@ -447,12 +442,12 @@ class WhoopJobMonitor:
                 if not next_run:
                     print("❌ Could not determine next run time.")
                     break
-                now = datetime.now(PACIFIC)
+                now = datetime.now(EASTERN)
                 wait_seconds = (next_run - now).total_seconds()
                 if wait_seconds <= 0:
                     self.run_once()
                     continue
-                print(f"⏰ Next run: {next_run.strftime('%A %Y-%m-%d at %I:%M %p')} Pacific (in {wait_seconds/3600:.1f} hours)")
+                print(f"⏰ Next run: {next_run.strftime('%A %Y-%m-%d at %I:%M %p')} Eastern (in {wait_seconds/3600:.1f} hours)")
                 time.sleep(wait_seconds)
                 self.run_once()
         except KeyboardInterrupt:
@@ -475,7 +470,7 @@ def main():
     # For continuous monitoring (every CHECK_INTERVAL seconds):
     # monitor.run_continuous()
     
-    # Scheduled: Saturday 8am, Sunday 8am, Monday 5pm Pacific
+    # Scheduled: every day at 8am Eastern
     monitor.run_scheduled()
 
 
