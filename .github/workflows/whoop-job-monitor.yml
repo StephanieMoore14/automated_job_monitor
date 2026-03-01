@@ -42,3 +42,9 @@ jobs:
           WHOOP_SENDER_EMAIL: ${{ secrets.WHOOP_SENDER_EMAIL }}
           WHOOP_RECEIVER_EMAIL: ${{ secrets.WHOOP_RECEIVER_EMAIL }}
         run: python whoop_job_monitor.py
+
+      - name: Save job data for next run
+        uses: actions/cache/save@v4
+        with:
+          path: whoop_jobs_data.json
+          key: whoop-jobs-data
