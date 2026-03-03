@@ -322,8 +322,8 @@ class WhoopJobMonitor:
                 for j in changes_since_last['new']:
                     dept = j.get('department') or '?'
                     lines.append(f"      • {j['title']} [{dept}]")
-                    if j.get('url') and j['url'] != CAREERS_URL:
-                        lines.append(f"        🔗 {j['url']}")
+                    job_link = j.get('url') or CAREERS_URL
+                    lines.append(f"        🔗 {job_link}")
                 lines.append("")
             if changes_since_last['removed']:
                 lines.append(f"   ❌ REMOVED / FILLED ({len(changes_since_last['removed'])}):")
@@ -344,8 +344,8 @@ class WhoopJobMonitor:
             for i, job in enumerate(jobs['listings'], 1):
                 dept_label = f" [{job.get('department', '?')}]" if job.get('department') else ""
                 lines.append(f"{i}. {job['title']}{dept_label}")
-                if job['url'] != CAREERS_URL:
-                    lines.append(f"   🔗 {job['url']}")
+                job_link = job.get('url') or CAREERS_URL
+                lines.append(f"   🔗 {job_link}")
                 lines.append("")
         else:
             lines.append(f"\n⚠️  No job listings found in monitored departments.")
@@ -353,6 +353,9 @@ class WhoopJobMonitor:
         
         if 'last_checked' in jobs:
             lines.append(f"Last checked: {jobs['last_checked']}")
+        
+        # Always include the main careers page link at the end
+        lines.append(f"Careers page: {CAREERS_URL}")
         
         lines.append(f"{'='*70}\n")
         return "\n".join(lines)
