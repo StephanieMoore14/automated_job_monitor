@@ -52,7 +52,7 @@ def get_next_run_time():
 
 # DEPARTMENTS TO MONITOR - Only track jobs in these departments
 DEPARTMENTS_TO_MONITOR = [
-    "Data Science & Research",
+    "Machine Learning & Research",
     "Performance Science"
 ]
 

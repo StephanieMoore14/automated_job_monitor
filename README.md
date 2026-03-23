@@ -1,6 +1,6 @@
 # WHOOP Job Monitor
 
-Monitors WHOOP careers for Data Science & Performance Science roles and emails you the current listings (and “new since last run”) every day at 8am Eastern.
+Monitors WHOOP careers for Machine Learning & Research and Performance Science roles and emails you the current listings (and “new since last run”) every day at 8am Eastern.
 
 ## Running locally
 
