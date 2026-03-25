@@ -8,7 +8,6 @@ Simplified approach: Extract all jobs, then filter by department.
 import json
 import os
 import time
-import hashlib
 from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -29,7 +28,7 @@ except ImportError:
 
 # Configuration
 CAREERS_URL = "https://www.whoop.com/us/en/careers/"
-CHECK_INTERVAL = 3600  # Check every hour (in seconds)
+CHECK_INTERVAL = 3600  # Check every hour (in seconds) — used by run_continuous() only, not run_scheduled()
 DATA_FILE = Path("whoop_jobs_data.json")
 
 # Schedule: every day at 8:00 AM Eastern (EST/EDT)
@@ -277,10 +276,6 @@ class WhoopJobMonitor:
 
             # Replace listings with filtered list
             jobs['listings'] = filtered_listings
-            
-            # Get page source for hash comparison
-            page_source = driver.page_source
-            jobs['page_hash'] = hashlib.md5(page_source.encode()).hexdigest()
             
             # Store metadata
             jobs['count'] = len(jobs['listings'])
