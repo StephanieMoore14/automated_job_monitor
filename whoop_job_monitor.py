@@ -163,9 +163,9 @@ class WhoopJobMonitor:
                             try:
                                 driver.execute_script("arguments[0].click();", header)
                                 time.sleep(0.3)
-                            except:
-                                pass
-                    except:
+                            except Exception as e:
+                                print(f"   ⚠️  Could not click accordion for '{dept_name}': {e}")
+                    except Exception:
                         continue
                 
                 print(f"   Waiting for content to load...")
@@ -222,16 +222,16 @@ class WhoopJobMonitor:
                                         ".accordion-table_accordion-table__header__VM2KA .text_text--size-lg__uWJQC")
                                     department = dept_header.text.strip()
                                     break
-                                except:
+                                except Exception:
                                     continue
-                        except:
+                        except Exception:
                             pass
                         
                         # Get job URL
                         try:
                             parent_link = elem.find_element(By.XPATH, "./ancestor::a")
                             job_url = parent_link.get_attribute('href')
-                        except:
+                        except Exception:
                             job_url = CAREERS_URL
                         
                         # Store the job with its department
@@ -257,7 +257,9 @@ class WhoopJobMonitor:
             
             filtered_listings = []
             for job in jobs['listings']:
-                if job['department'] in DEPARTMENTS_TO_MONITOR:
+                is_monitored_dept = job['department'] in DEPARTMENTS_TO_MONITOR
+                is_data_scientist = 'data scientist' in job['title'].lower()
+                if is_monitored_dept or is_data_scientist:
                     filtered_listings.append(job)
                     print(f"   ✓ {job['title']} ({job['department']})")
             
@@ -310,7 +312,7 @@ class WhoopJobMonitor:
         lines = []
         lines.append(f"\n{'='*70}")
         lines.append(f"📋 CURRENT JOB LISTINGS - WHOOP Careers")
-        lines.append(f"🎯 Monitoring: {', '.join(DEPARTMENTS_TO_MONITOR)}")
+        lines.append(f"🎯 Monitoring: {', '.join(DEPARTMENTS_TO_MONITOR)} + 'Data Scientist' titles (all depts)")
         lines.append(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         lines.append(f"{'='*70}")
         
@@ -334,6 +336,19 @@ class WhoopJobMonitor:
         elif changes_since_last and not changes_since_last['new'] and not changes_since_last['removed']:
             lines.append(f"\n📌 No changes since last run (same listings as saved JSON).\n")
         
+        # Data Scientist positions section (across all departments)
+        ds_listings = [j for j in jobs.get('listings', []) if 'data scientist' in j['title'].lower()]
+        if ds_listings:
+            lines.append(f"\n🔬 CURRENT DATA SCIENTIST POSITIONS ({len(ds_listings)} total):\n")
+            for job in ds_listings:
+                dept_label = f" [{job.get('department', '?')}]" if job.get('department') else ""
+                lines.append(f"   • {job['title']}{dept_label}")
+                job_link = job.get('url') or CAREERS_URL
+                lines.append(f"     🔗 {job_link}")
+            lines.append("")
+        else:
+            lines.append(f"\n🔬 CURRENT DATA SCIENTIST POSITIONS: None found\n")
+
         if 'departments' in jobs and jobs['departments']:
             lines.append(f"\n📂 MONITORED DEPARTMENTS ({len(jobs['departments'])} total):\n")
             for dept, count in jobs['departments'].items():
@@ -374,12 +389,16 @@ class WhoopJobMonitor:
     
     def send_email_notification(self, message, has_new_jobs=False):
         """Send email notification (same content as console report)."""
-        # Email config: use env vars in CI (GitHub Actions secrets), else fallback to defaults
+        # Email config: use env vars in CI (GitHub Actions secrets) or a local .env file
         smtp_server = os.environ.get("WHOOP_SMTP_SERVER") or "smtp.gmail.com"
         smtp_port = int(os.environ.get("WHOOP_SMTP_PORT") or "587")
         sender_email = os.environ.get("WHOOP_SENDER_EMAIL") or "sgmoore209@gmail.com"
-        sender_password = os.environ.get("WHOOP_SMTP_PASSWORD") or "qnqkowjouucedivr"
+        sender_password = os.environ.get("WHOOP_SMTP_PASSWORD")
         receiver_email = os.environ.get("WHOOP_RECEIVER_EMAIL") or "sgmoore209@gmail.com"
+
+        if not sender_password:
+            raise ValueError("WHOOP_SMTP_PASSWORD environment variable is not set. "
+                             "Add it to your .env file locally or as a GitHub Actions secret.")
         
         subject = "📋 WHOOP Careers - NEW Job Listings" if has_new_jobs else "📋 WHOOP Careers - Current Job Listings"
         
