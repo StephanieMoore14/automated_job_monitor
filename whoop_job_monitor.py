@@ -267,7 +267,14 @@ class WhoopJobMonitor:
             for dept in DEPARTMENTS_TO_MONITOR:
                 if dept in jobs['all_departments']:
                     jobs['departments'][dept] = jobs['all_departments'][dept]
-            
+
+            # Warn if a monitored department name doesn't match any scraped department
+            # (helps diagnose WHOOP renaming a department)
+            for dept in DEPARTMENTS_TO_MONITOR:
+                if dept not in jobs['all_departments']:
+                    print(f"   ⚠️  WARNING: Monitored department '{dept}' not found on page.")
+                    print(f"        Available departments: {list(jobs['all_departments'].keys())}")
+
             # Replace listings with filtered list
             jobs['listings'] = filtered_listings
             
