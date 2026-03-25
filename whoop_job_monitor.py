@@ -241,8 +241,8 @@ class WhoopJobMonitor:
                             'department': department
                         }
                         
-                        # Avoid duplicates
-                        if not any(j['title'] == job_title for j in jobs['listings']):
+                        # Avoid duplicates using composite (title, department) key
+                        if not any(j['title'] == job_title and j['department'] == department for j in jobs['listings']):
                             jobs['listings'].append(job_data)
                     
                     except Exception as e:
@@ -295,16 +295,18 @@ class WhoopJobMonitor:
     def compare_with_previous(self, current_jobs):
         """
         Compare current jobs to the saved JSON (previous run).
+        Uses (title, department) composite key to correctly detect re-posted roles
+        and jobs with identical titles in different departments.
         Returns dict with 'new' and 'removed' lists of job dicts.
         """
         prev_listings = self.previous_jobs.get('listings') or []
         curr_listings = current_jobs.get('listings') or []
-        prev_titles = {j['title'] for j in prev_listings}
-        curr_titles = {j['title'] for j in curr_listings}
-        new_titles = curr_titles - prev_titles
-        removed_titles = prev_titles - curr_titles
-        new_jobs = [j for j in curr_listings if j['title'] in new_titles]
-        removed_jobs = [j for j in prev_listings if j['title'] in removed_titles]
+        prev_keys = {(j['title'], j.get('department')) for j in prev_listings}
+        curr_keys = {(j['title'], j.get('department')) for j in curr_listings}
+        new_keys = curr_keys - prev_keys
+        removed_keys = prev_keys - curr_keys
+        new_jobs = [j for j in curr_listings if (j['title'], j.get('department')) in new_keys]
+        removed_jobs = [j for j in prev_listings if (j['title'], j.get('department')) in removed_keys]
         return {'new': new_jobs, 'removed': removed_jobs}
     
     def format_current_jobs_report(self, jobs, changes_since_last=None):
