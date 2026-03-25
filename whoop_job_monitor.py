@@ -428,17 +428,25 @@ class WhoopJobMonitor:
         
         current_jobs = self.fetch_jobs()
         
-        if current_jobs:
-            # Compare with saved JSON (previous run) for new/removed jobs
-            changes = self.compare_with_previous(current_jobs) if self.previous_jobs.get('listings') else None
-            has_new_jobs = changes and len(changes.get('new', [])) > 0
-            # Build report including changes since last run (omit on first run)
+        if current_jobs.get('count', 0) > 0:
+            # Compare with saved JSON (previous run) for new/removed jobs.
+            # Always compare (even on first run) — returns empty lists if no previous data.
+            changes = self.compare_with_previous(current_jobs)
+            has_new_jobs = len(changes.get('new', [])) > 0
+            # Build report including changes since last run
             report = self.format_current_jobs_report(current_jobs, changes_since_last=changes)
             self.send_notification(report, has_new_jobs=has_new_jobs)
-            
+
             # Save current state to JSON for next comparison
             self.previous_jobs = current_jobs
             self.save_jobs(current_jobs)
+        elif current_jobs:
+            # Scrape ran but returned 0 listings — likely a page load failure.
+            # Do NOT save as the new baseline to avoid false "all jobs new" on next run.
+            print("⚠️  Scrape returned 0 jobs — skipping save to preserve previous baseline.")
+            changes = self.compare_with_previous(current_jobs)
+            report = self.format_current_jobs_report(current_jobs, changes_since_last=changes)
+            self.send_notification(report, has_new_jobs=False)
         else:
             print("❌ Failed to fetch job data.")
     
